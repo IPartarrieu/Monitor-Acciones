@@ -1,6 +1,6 @@
 # Monitor de acciones: Worker de Cloudflare
 
-Mismas rutas que `servidor.py`: `/api`, `/api/serie?t=`, `/api/barras?t=` (barras de 1 h; el pronóstico lo calcula la web con `docs/pronostico.js`) (datos de Yahoo Finance).
+Mismas rutas que `servidor.py`: `/api`, `/api/serie?t=`, `/api/barras?t=` (barras de 1 h; el pronóstico lo calcula la web con `docs/pronostico.js`) (datos de Yahoo Finance). `/api?t=A,B` (hasta 30 tickers), `/api/buscar?q=`, `/api/noticias?t=`, `/api/mercado` (mayores alzas del día con lectura técnica). `/api/serie` y `/api/barras` sirven cualquier ticker válido.
 
 1. Cuenta gratuita en cloudflare.com (sin tarjeta).
 2. Desde esta carpeta: `npx wrangler login` (abre el navegador).
