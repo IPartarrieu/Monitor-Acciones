@@ -1,0 +1,66 @@
+[
+ {
+  "t": "AAPL",
+  "n": "Apple"
+ },
+ {
+  "t": "AMZN",
+  "n": "Amazon"
+ },
+ {
+  "t": "IONQ",
+  "n": "IonQ"
+ },
+ {
+  "t": "AAOI",
+  "n": "Applied Optoelectronics"
+ },
+ {
+  "t": "VOO",
+  "n": "Vanguard S&P 500"
+ },
+ {
+  "t": "NVDA",
+  "n": "NVIDIA"
+ },
+ {
+  "t": "^GSPC",
+  "n": "S&P 500"
+ },
+ {
+  "t": "^DJI",
+  "n": "Dow Jones"
+ },
+ {
+  "t": "^IXIC",
+  "n": "Nasdaq"
+ },
+ {
+  "t": "MSFT",
+  "n": "Microsoft"
+ },
+ {
+  "t": "GOOG",
+  "n": "Alphabet"
+ },
+ {
+  "t": "META",
+  "n": "Meta"
+ },
+ {
+  "t": "TSLA",
+  "n": "Tesla"
+ },
+ {
+  "t": "NFLX",
+  "n": "Netflix"
+ },
+ {
+  "t": "ECH",
+  "n": "iShares Chile"
+ },
+ {
+  "t": "CLP=X",
+  "n": "Dólar/CLP"
+ }
+]

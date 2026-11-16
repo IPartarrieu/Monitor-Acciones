@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#05070d">
+<title>Monitor de acciones</title>
+<style>
+:root{--bg:#05070d;--panel:#0b1020;--line:#1a2440;--tx:#e6edff;--mut:#6b7a9e;--up:#19f0a0;--dn:#ff3d7f;--acc:#38bdf8;
+ --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,Consolas,monospace}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,-apple-system,sans-serif;min-height:100vh;
+ padding:max(16px,env(safe-area-inset-top)) 16px 32px;
+ background-image:radial-gradient(900px 420px at 80% -10%,#0e2a4a55,transparent),radial-gradient(700px 400px at -10% 30%,#2a0e4a40,transparent),
+ linear-gradient(#ffffff06 1px,transparent 1px),linear-gradient(90deg,#ffffff06 1px,transparent 1px);background-size:auto,auto,32px 32px,32px 32px}
+main{max-width:1000px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+h1{font:600 13px var(--mono);letter-spacing:.28em;text-transform:uppercase;color:var(--acc)}
+h1::before{content:"> ";opacity:.6}
+h2{font:600 12px var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--mut);margin:22px 0 10px}
+h2:first-child{margin-top:0}
+#reloj{font:12px var(--mono);color:var(--mut);text-align:right}
+#estado{display:flex;align-items:center;gap:14px;padding:14px 18px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(135deg,#0b1020,#0a1328);margin-bottom:12px}
+#estado .pt{width:12px;height:12px;border-radius:50%;background:var(--dn);box-shadow:0 0 14px var(--dn);flex:none}
+#estado.abierto{border-color:#19f0a055;box-shadow:0 0 28px #19f0a022 inset}
+#estado.abierto .pt{background:var(--up);box-shadow:0 0 14px var(--up);animation:pulso 1.6s infinite}
+@keyframes pulso{50%{transform:scale(1.5);opacity:.55}}
+#estado b{font:600 16px var(--mono);letter-spacing:.06em;text-transform:uppercase;display:block}
+#estado small{color:var(--mut);font-size:13px}
+#amplitud{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 18px;margin-bottom:16px}
+#amplitud .t{display:flex;justify-content:space-between;font:13px var(--mono);margin-bottom:8px}
+#amplitud .barra{display:flex;height:8px;border-radius:99px;overflow:hidden;background:var(--line);gap:2px}
+#amplitud .barra i{display:block;transition:width .6s}
+#amplitud .u{background:var(--up);box-shadow:0 0 10px var(--up)}#amplitud .d{background:var(--dn);box-shadow:0 0 10px var(--dn)}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.c{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:14px 16px 0;transition:border-color .3s,transform .2s;cursor:pointer}
+.c::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--col);box-shadow:0 0 14px var(--col)}
+.c.up{--col:var(--up)}.c.dn{--col:var(--dn)}
+.c.mia{border-color:#38bdf855}
+.c.mia .tk::after{content:" ★";color:var(--acc);font-size:12px}
+.c:hover{border-color:var(--col)}.c:active{transform:scale(.98)}
+.c .a{display:flex;justify-content:space-between;align-items:baseline}
+.c .tk{font:700 17px var(--mono);letter-spacing:.04em}
+.c .nm{color:var(--mut);font-size:12px;margin-top:1px}
+.c .pc{font:600 22px var(--mono);margin-top:10px;font-variant-numeric:tabular-nums}
+.c .vr{font:600 13px var(--mono);color:var(--col);text-align:right}
+.c .vr em{display:block;font-style:normal;font-size:18px}
+.c svg{display:block;width:calc(100% + 32px);margin:6px -16px 0;height:54px}
+.flash-up{animation:fu .9s}.flash-dn{animation:fd .9s}
+@keyframes fu{from{background:#19f0a030}}@keyframes fd{from{background:#ff3d7f30}}
+.err{opacity:.5;padding-bottom:12px}
+#pie{font:11px var(--mono);color:var(--mut);text-align:center;margin-top:20px}
+/* detalle */
+#det{position:fixed;inset:0;background:#000b;backdrop-filter:blur(6px);display:none;align-items:flex-end;justify-content:center;z-index:9}
+#det.on{display:flex}
+#hoja{width:100%;max-width:720px;max-height:94vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:20px 20px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));--col:var(--up)}
+@media(min-width:760px){#det{align-items:center}#hoja{border-radius:20px}}
+#hoja.dn{--col:var(--dn)}
+#hoja .top{display:flex;justify-content:space-between;align-items:flex-start}
+#hoja .tk{font:700 22px var(--mono)}#hoja .nm{color:var(--mut);font-size:13px}
+#cerrar{background:var(--line);color:var(--tx);border:0;border-radius:50%;width:34px;height:34px;font-size:18px;cursor:pointer}
+#hoja .pc{font:600 34px var(--mono);margin-top:10px;font-variant-numeric:tabular-nums}
+#hoja .vr{font:600 15px var(--mono);color:var(--col)}
+#rangos{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:14px 0}
+#rangos button{background:#0f1830;border:1px solid var(--line);color:var(--tx);border-radius:12px;padding:8px 2px;cursor:pointer;font:600 12px var(--mono)}
+#rangos button small{display:block;font-size:11px;margin-top:2px}
+@media(max-width:480px){#rangos button{font-size:11px;padding:8px 0}#rangos button small{font-size:9.5px}}
+#rangos button.on{border-color:var(--acc);box-shadow:0 0 14px #38bdf833}
+#grafico{position:relative;touch-action:pan-y}
+#grafico svg{display:block;width:100%;height:240px}
+#sonda{position:absolute;top:0;left:0;font:12px var(--mono);background:#05070dee;border:1px solid var(--line);border-radius:8px;padding:4px 8px;pointer-events:none;display:none;white-space:nowrap}
+.pos{color:var(--up)}.neg{color:var(--dn)}
+#bpron{width:100%;margin-bottom:12px;background:linear-gradient(135deg,#38bdf822,#a78bfa22);border:1px solid var(--acc);color:var(--tx);border-radius:12px;padding:10px;font:600 13px var(--mono);letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+#bmia{width:100%;margin-top:10px;background:none;border:1px solid var(--line);color:var(--tx);border-radius:12px;padding:8px;font:600 13px var(--mono);cursor:pointer}
+#bpron.on{box-shadow:0 0 16px #38bdf855}
+#pron{margin-top:14px}
+.veredicto{font:600 18px var(--mono);color:var(--v)}.veredicto small{display:block;color:var(--mut);font-size:12px;margin-top:2px}
+.leyenda{font:11px var(--mono);color:var(--mut);margin:8px 0}.leyenda i{display:inline-block;width:14px;height:3px;border-radius:2px;margin:0 4px 2px 10px}.leyenda i:first-child{margin-left:0}
+.sen{list-style:none;padding:0;margin:10px 0}.sen li{padding:7px 0;border-top:1px solid var(--line);font-size:13px}.sen li small{display:block;color:var(--mut);margin-left:20px;font:11px var(--mono)}
+#pron h3{font:600 12px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+#pron table{width:100%;font:13px var(--mono);border-collapse:collapse}#pron td{padding:5px 0;border-top:1px solid var(--line)}#pron td:last-child{text-align:right}
+.mut{color:var(--mut)}.aviso{font-size:11.5px;color:var(--mut);margin-top:10px;line-height:1.45}
+</style>
+</head>
+<body><main>
+<header><h1>Monitor de acciones</h1><div id="reloj"></div></header>
+<div id="estado"><span class="pt"></span><div><b>Cargando</b><small>&nbsp;</small></div></div>
+<div id="amplitud"></div>
+<div id="lista"></div>
+<div id="pie"></div>
+</main>
+<div id="det"><div id="hoja">
+ <div class="top"><div><div class="tk" id="dt"></div><div class="nm" id="dn"></div></div><button id="cerrar" aria-label="Cerrar">✕</button></div>
+ <div class="pc" id="dp"></div><div class="vr" id="dv"></div>
+ <div id="rangos"></div>
+ <button id="bmia"></button>
+ <button id="bpron">◈ Pronóstico</button>
+ <div id="grafico"><svg id="gs" viewBox="0 0 600 240" preserveAspectRatio="none"></svg><div id="sonda"></div></div>
+ <div id="pron"></div>
+</div></div>
+<script src="config.js"></script>
+<script>
+const API=window.API_BASE||"";
+let mias=[];try{mias=JSON.parse(localStorage.getItem("mias"))||[]}catch(e){}
+const esMia=t=>mias.includes(t);
+function marcar(t){mias=esMia(t)?mias.filter(x=>x!==t):[...mias,t];try{localStorage.setItem("mias",JSON.stringify(mias))}catch(e){}pintar();btnMia(t)}
+function btnMia(t){$("bmia").textContent=esMia(t)?"★ Mía":"☆ Marcar como mía"}
+const fmt=(n,d=2)=>n.toLocaleString("es-CL",{minimumFractionDigits:d,maximumFractionDigits:d});
+const sgn=v=>(v>=0?"+":"")+fmt(v)+"%";
+const NY=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"numeric",minute:"numeric",hour12:false});
+function ny(d){const p=Object.fromEntries(NY.formatToParts(d).map(x=>[x.type,x.value]));return{dia:p.weekday,min:(+p.hour%24)*60+ +p.minute}}
+function horario(d){const {dia,min}=ny(d);return !["Sat","Sun"].includes(dia)&&min>=570&&min<960}
+function proxApertura(){const d=Date.now();for(let i=0;i<7*24*60;i++){const t=new Date(d+i*60000);if(horario(t))return t}}
+function spark(a,up,id){
+ if(!a||a.length<2)return"";const mn=Math.min(...a),mx=Math.max(...a),r=mx-mn||1,W=200,H=54;
+ const pts=a.map((v,i)=>[i/(a.length-1)*W,H-4-(v-mn)/r*(H-12)]);
+ const ln=pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" "),col=up?"#19f0a0":"#ff3d7f";
+ return`<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="g${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+ <polygon points="0,${H} ${ln} ${W},${H}" fill="url(#g${id})"/><polyline points="${ln}" fill="none" stroke="${col}" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg>`}
+let ultimo,previos={};
+async function cargar(){
+ try{ultimo=await (await fetch(API+"/api")).json()}catch(e){document.getElementById("pie").textContent="// sin conexión con el servidor…";return}
+ pintar()}
+const tarjeta=(i,k)=>{const up=i.var>=0,c=up?"up":"dn",
+ f=previos[i.t]!==undefined&&previos[i.t]!==i.p?(i.p>previos[i.t]?" flash-up":" flash-dn"):"";previos[i.t]=i.p;
+ return`<div class="c ${c}${esMia(i.t)?" mia":""}${f}" data-t="${i.t}"><div class="a"><div><div class="tk">${i.t.replace("^","")}</div><div class="nm">${i.n}</div></div>
+ <div class="vr"><em>${up?"▲":"▼"} ${fmt(Math.abs(i.var))}%</em></div></div><div class="pc">${fmt(i.p)}</div>${spark(i.spark,up,k)}</div>`};
+const grupo=(t,a,o)=>a.length?`<h2>${t}</h2><div class="g">${a.map((i,k)=>tarjeta(i,o+k)).join("")}</div>`:"";
+function pintar(){
+ if(!ultimo)return;
+ const ok=ultimo.items.filter(i=>!i.error).sort((a,b)=>b.var-a.var);
+ const abierto=horario(new Date())&&ok.some(i=>i.hora&&Date.now()/1000-i.hora<1200); // horario + datos frescos (cubre feriados)
+ const e=document.getElementById("estado");e.className=abierto?"abierto":"";
+ if(abierto)e.querySelector("div").innerHTML="<b>Mercado abierto</b><small>NYSE / Nasdaq · cierra a las 16:00 de Nueva York</small>";
+ else{const t=proxApertura();e.querySelector("div").innerHTML="<b>Mercado cerrado</b><small>Abre "+t.toLocaleString("es-CL",{weekday:"long",hour:"2-digit",minute:"2-digit"})+" (hora de tu dispositivo)</small>"}
+ document.title=(abierto?"🟢 ":"")+"Monitor de acciones";
+ const al=ok.filter(i=>i.var>0).length,ba=ok.filter(i=>i.var<0).length,n=ok.length||1,pr=ok.reduce((s,i)=>s+i.var,0)/n;
+ document.getElementById("amplitud").innerHTML=`<div class="t"><span style="color:var(--up)">▲ ${al} al alza</span><span style="color:var(--mut)">prom. ${sgn(pr)}</span><span style="color:var(--dn)">${ba} a la baja ▼</span></div>
+ <div class="barra"><i class="u" style="width:${al/n*100}%"></i><i class="d" style="width:${ba/n*100}%"></i></div>`;
+ document.getElementById("lista").innerHTML=grupo("Mi cartera (Fintual)",ok.filter(i=>esMia(i.t)),0)+grupo("Mercado",ok.filter(i=>!esMia(i.t)),50)
+  +ultimo.items.filter(i=>i.error).map(i=>`<div class="c err"><div class="tk">${i.t}</div><div class="nm">sin datos</div></div>`).join("");
+ document.getElementById("pie").textContent="// actualizado "+new Date(ultimo.ahora*1000).toLocaleTimeString("es-CL")+" · Yahoo Finance · puede tener minutos de retraso";
+}
+function reloj(){const d=new Date(),h=z=>d.toLocaleTimeString("es-CL",{timeZone:z,hour:"2-digit",minute:"2-digit"});
+ document.getElementById("reloj").innerHTML=`NY ${h("America/New_York")}<br>CL ${h("America/Santiago")}`}
+
+// ---- detalle: serie de tiempo con 1D / 1S / 1M / 6M / 1A ----
+let sel=null,series=null,rango="1D",modo="rango";
+const $=id=>document.getElementById(id);
+document.getElementById("lista").addEventListener("click",ev=>{const c=ev.target.closest(".c[data-t]");if(c)abrir(c.dataset.t)});
+$("cerrar").onclick=cerrar;$("bmia").onclick=()=>sel&&marcar(sel.t);$("det").onclick=ev=>{if(ev.target.id==="det")cerrar()};
+addEventListener("keydown",ev=>{if(ev.key==="Escape")cerrar()});
+function cerrar(){$("det").classList.remove("on");sel=null;document.body.style.overflow=""}
+async function abrir(t){
+ sel=ultimo.items.find(i=>i.t===t);series=null;rango="1D";modo="rango";$("pron").innerHTML="";$("bpron").classList.remove("on");
+ $("dt").textContent=t.replace("^","");$("dn").textContent=sel.n;$("dp").textContent=fmt(sel.p);
+ $("rangos").innerHTML="";$("gs").innerHTML="";$("dv").textContent="cargando…";
+ btnMia(t);$("det").classList.add("on");document.body.style.overflow="hidden";
+ try{const s=await (await fetch(API+"/api/serie?t="+encodeURIComponent(t))).json();if(!sel||sel.t!==t)return;series=s}
+ catch(e){$("dv").textContent="sin conexión con el servidor";return}
+ rangosUI();dibujar()}
+function rangosUI(){
+ $("rangos").innerHTML=["1D","1S","1M","6M","1A","5A","MAX"].map(r=>{const s=series[r],v=s&&!s.error?s.var:null;
+  return`<button data-r="${r}" class="${r===rango&&modo==="rango"?"on":""}">${r}<small class="${v==null?"":v>=0?"pos":"neg"}">${v==null?"–":sgn(v)}</small></button>`}).join("");
+ $("rangos").querySelectorAll("button").forEach(b=>b.onclick=()=>{rango=b.dataset.r;modo="rango";$("pron").innerHTML="";$("bpron").classList.remove("on");rangosUI();dibujar()})}
+function dibujar(){
+ const s=series[rango];if(!s||s.error||s.c.length<2){$("gs").innerHTML="";$("dv").textContent="sin datos para este período";return}
+ const up=s.var>=0,col=up?"#19f0a0":"#ff3d7f",W=600,H=240,m=6,a=s.c,mn=Math.min(...a),mx=Math.max(...a),r=mx-mn||1;
+ $("hoja").className=up?"":"dn";
+ $("dv").innerHTML=`${up?"▲":"▼"} ${sgn(s.var)} · ${rango==="1D"?"hoy":rango==="1S"?"últimos 5 días":rango==="1M"?"último mes":rango==="6M"?"últimos 6 meses":rango==="1A"?"último año":rango==="5A"?"últimos 5 años":"toda la historia"}`;
+ const X=i=>i/(a.length-1)*W,Y=v=>H-m-(v-mn)/r*(H-2*m);
+ const ln=a.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
+ const base=s.base>=mn&&s.base<=mx?`<line x1="0" x2="${W}" y1="${Y(s.base)}" y2="${Y(s.base)}" stroke="#6b7a9e" stroke-dasharray="4 4" vector-effect="non-scaling-stroke" opacity=".6"/>`:"";
+ $("gs").innerHTML=`<defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".4"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+  ${base}<polygon points="0,${H} ${ln} ${W},${H}" fill="url(#gd)"/><polyline points="${ln}" fill="none" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/>
+  <g id="mira" style="display:none"><line id="mx" y1="0" y2="${H}" stroke="#e6edff" opacity=".5" vector-effect="non-scaling-stroke"/></g>`;
+ $("sonda").style.display="none"}
+function sonda(ev){
+ if(modo==="pron")return;
+ const s=series&&series[rango];if(!s||s.error)return;
+ const g=$("grafico").getBoundingClientRect(),x=Math.min(Math.max((ev.clientX-g.left)/g.width,0),1),i=Math.round(x*(s.c.length-1));
+ const d=new Date(s.ts[i]*1000),corto=rango==="1D"||rango==="1S";
+ const fecha=d.toLocaleString("es-CL",corto?{weekday:"short",hour:"2-digit",minute:"2-digit"}:{day:"numeric",month:"short",year:"2-digit"});
+ const mira=$("mira");if(mira){mira.style.display="";$("mx").setAttribute("x1",x*600);$("mx").setAttribute("x2",x*600)}
+ const so=$("sonda");so.style.display="block";so.innerHTML=`${fecha}<br><b>${fmt(s.c[i])}</b> <span class="${s.c[i]>=s.base?"pos":"neg"}">${sgn((s.c[i]/s.base-1)*100)}</span>`;
+ so.style.left=Math.min(Math.max(x*g.width-60,0),g.width-120)+"px"}
+$("grafico").addEventListener("pointermove",sonda);$("grafico").addEventListener("pointerdown",sonda);
+$("grafico").addEventListener("pointerleave",()=>{$("sonda").style.display="none";const m=$("mira");if(m)m.style.display="none"});
+
+// ---- pronóstico: medias móviles + MACD + RSI sobre barras de 1 h (calculado en el servidor) ----
+$("bpron").onclick=async()=>{
+ if(!sel)return;const t0=sel.t;modo="pron";if(series)rangosUI();
+ $("bpron").classList.add("on");$("sonda").style.display="none";$("dv").textContent="calculando pronóstico…";
+ let p;try{const [m,b]=await Promise.all([import("./pronostico.js"),fetch(API+"/api/barras?t="+encodeURIComponent(t0)).then(r=>r.json())]);
+  await new Promise(r=>setTimeout(r,30));// deja pintar «calculando…» antes del cálculo (≈1 s)
+  p=b.c?m.pronostico(b.c,b.ts,b.o.map((o,i)=>[o,b.h[i],b.l[i]])):{}}catch(e){$("dv").textContent="sin conexión con el servidor";return}
+ if(!sel||sel.t!==t0||modo!=="pron")return;
+ if(!p.dir){$("dv").textContent="sin datos horarios suficientes para pronosticar";$("pron").innerHTML="";return}
+ pintarPron(p)};
+function pintarPron(p){
+ const up=p.dir==="alcista",dn=p.dir==="bajista",v=p.validada,pr=p.prueba,pct=x=>fmt(x*100,1)+"%";
+ const col=v?(up?"#19f0a0":"#ff3d7f"):"#38bdf8";
+ $("hoja").className=v&&dn?"dn":"";
+ const s=p.serie,W=600,H=240,m=8,N=s.c.length,T=N+3,todos=[...s.h,...s.l,...p.proy.flatMap(q=>q.b80)];
+ const mn=Math.min(...todos),mx=Math.max(...todos),r=mx-mn||1,X=i=>i/(T-1)*(W-4),Y=y=>H-m-(y-mn)/r*(H-2*m);
+ const P=(i,y)=>X(i).toFixed(1)+","+Y(y).toFixed(1);
+ const lin=(a,c,w)=>`<polyline points="${a.map((y,i)=>y==null?"":P(i,y)).filter(Boolean).join(" ")}" fill="none" stroke="${c}" stroke-width="${w}" vector-effect="non-scaling-stroke"/>`;
+ // velas: bloque verde si la hora cerró al alza, rojo si cerró a la baja; mecha = máximo y mínimo
+ const bw=(W-4)/(T-1)*.62,V="#19f0a0",R="#ff3d7f";
+ const vela=(i,o,h,l,c)=>{const k=c>=o?V:R,x=X(i);
+  return`<line x1="${x}" x2="${x}" y1="${Y(h)}" y2="${Y(l)}" stroke="${k}" stroke-width="1.2" vector-effect="non-scaling-stroke"/>
+  <rect x="${x-bw/2}" y="${Math.min(Y(o),Y(c))}" width="${bw}" height="${Math.max(Math.abs(Y(o)-Y(c)),1.2)}" fill="${k}"/>`};
+ // proyección: bloques verticales con el rango esperado (claro 80 %, oscuro 50 %) y una marca en el centro
+ const bloque=(i,[lo,hi],op)=>`<rect x="${X(i)-bw/2}" y="${Y(hi)}" width="${bw}" height="${Math.max(Y(lo)-Y(hi),1)}" fill="${col}" fill-opacity="${op}"/>`;
+ const fut=p.proy.map((q,k)=>bloque(N+k,q.b80,.16)+bloque(N+k,q.b50,.38)+`<line x1="${X(N+k)-bw/2}" x2="${X(N+k)+bw/2}" y1="${Y(q.c)}" y2="${Y(q.c)}" stroke="${col}" stroke-width="2" vector-effect="non-scaling-stroke"/>`).join("");
+ $("gs").innerHTML=`<line x1="${X(N-1)+bw}" x2="${X(N-1)+bw}" y1="0" y2="${H}" stroke="#6b7a9e" stroke-dasharray="3 4" vector-effect="non-scaling-stroke" opacity=".6"/>`
+  +s.c.map((c,i)=>vela(i,s.o[i],s.h[i],s.l[i],c)).join("")+lin(s.s20,"#fbbf24",1.3)+lin(s.s50,"#a78bfa",1.3)+fut;
+ const titulo=v?(up?"▲ Sesgo alcista validado":"▼ Sesgo bajista validado"):"◆ Sin señal validada";
+ $("dv").innerHTML=`<span style="color:${col}">${titulo}</span> · próximas 3 horas`;
+ const medida=pr.acierto==null?"hay muy pocas señales para medir su acierto":`en 2 años de esta acción acertó ${pct(pr.acierto)} frente a ${pct(pr.base)} esperado por puro azar (z=${fmt(pr.z)}, n efectivo ${pr.n_eff})`;
+ const c3=p.cobertura[p.cobertura.length-1],rg=q=>`${fmt(q[0])} – ${fmt(q[1])}`;
+ $("pron").innerHTML=`<div class="veredicto" style="--v:${col}">${titulo}
+  <small>${v?`La regla ${medida}.`:`Los indicadores marcan una lectura ${p.dir}, pero no se muestra como dirección: ${medida}. El centro de la proyección es el último precio.`}</small></div>
+  <div class="leyenda"><i style="background:#19f0a0"></i>Hora al alza<i style="background:#ff3d7f"></i>Hora a la baja<i style="background:#fbbf24"></i>Media 20<i style="background:#a78bfa"></i>Media 50<i style="background:${col}"></i>Rango proyectado (oscuro 50 %, claro 80 %)</div>
+  <h3>Rango esperado, próximas horas de mercado</h3>
+  <table><tr class="mut"><td></td><td>50 % de las veces</td><td>80 % de las veces</td></tr>${p.proy.map(q=>`<tr><td>+${q.h} h</td><td>${rg(q.b50)}</td><td>${rg(q.b80)}</td></tr>`).join("")}</table>
+  <p class="aviso">Calibración: en ${c3.n} horas del historial de esta acción, el rango de 80 % a ${c3.k} h contuvo el precio ${pct(c3.c80)} de las veces, y el de 50 %, ${pct(c3.c50)}.</p>
+  <h3>Lectura de indicadores${v?"":" (referencial)"}</h3>
+  <ul class="sen">${p.senales.map(x=>`<li><span class="${x.v>0?"pos":x.v<0?"neg":"mut"}">${x.v>0?"▲":x.v<0?"▼":"■"}</span> ${x.n}<small>${x.d}</small></li>`).join("")}</ul>
+  <p class="aviso">Análisis técnico educativo. La literatura revisada muestra que acertar la dirección a pocas horas es muy difícil (acierto realista de 50 a 53 %), por eso se muestra un rango calibrado y la dirección solo si supera el azar fuera de muestra. No es asesoría financiera; la decisión es tuya.</p>`}
+
+cargar();reloj();setInterval(cargar,20000);setInterval(()=>{pintar();reloj()},30000);
+</script>
+</body>
+</html>
