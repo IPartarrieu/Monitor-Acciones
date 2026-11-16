@@ -70,7 +70,6 @@ h2:first-child{margin-top:0}
 .nw .tt{font-size:13.5px;line-height:1.35}.nw small{display:block;color:var(--mut);font:11px var(--mono);margin-top:3px}
 @media(min-width:900px){#hoja{max-width:1040px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:0 22px;align-items:start}
  #hizq,#pron{grid-column:1}#hizq{grid-row:1}#pron{grid-row:2}#noti{grid-column:2;grid-row:1/3;margin-top:0}}
-#bext{width:100%;margin-top:8px;background:none;border:1px solid var(--acc);color:var(--acc);border-radius:12px;padding:8px;font:600 13px var(--mono);cursor:pointer}
 .c:hover{border-color:var(--col)}.c:active{transform:scale(.98)}
 .c .a{display:flex;justify-content:space-between;align-items:baseline}
 .c .tk{font:700 17px var(--mono);letter-spacing:.04em}
@@ -139,7 +138,7 @@ h2:first-child{margin-top:0}
  <div class="top"><div><div class="tk" id="dt"></div><div class="nm" id="dn"></div></div><button id="cerrar" aria-label="Cerrar">✕</button></div>
  <div class="pc" id="dp"></div><div class="vr" id="dv"></div>
  <div id="rangos"></div>
- <button id="bmia"></button><button id="bext" hidden></button>
+ <button id="bmia"></button>
  <button id="bpron">◈ Pronóstico</button>
  <div id="grafico"><svg id="gs" viewBox="0 0 600 240" preserveAspectRatio="none"></svg><div id="ey"></div><div id="sonda"></div></div><div id="ex"></div></div>
  <div id="noti"><h3>Noticias</h3><div id="nl"></div><p class="aviso">Noticias en inglés, de Yahoo Finance; lectura orientativa.</p></div>
@@ -155,9 +154,15 @@ const guardarExtras=()=>{try{localStorage.setItem("extras",JSON.stringify(extras
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const el=(tag,cls,txt)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e};
 const esMia=t=>mias.includes(t);
-function marcar(t){mias=esMia(t)?mias.filter(x=>x!==t):[...mias,t];try{localStorage.setItem("mias",JSON.stringify(mias))}catch(e){}pintar();btnMia(t)}
-function btnExt(){const b=$("bext");if(!sel||baseT.has(sel.t)){b.hidden=true;return}b.hidden=false;b.textContent=extras.some(e=>e.t===sel.t)?"Quitar de mi lista":"+ Agregar a mi lista"}
-function btnMia(t){$("bmia").textContent=esMia(t)?"★ Mía":"☆ Marcar como mía"}
+const guardarMias=()=>{try{localStorage.setItem("mias",JSON.stringify(mias))}catch(e){}};
+// «Agregar» = pasa a mis acciones; si no está en el visor (viene del buscador o de Mercado) también se suma; quitarla de las agregadas la saca
+function marcar(t,n){const ya=esMia(t),ext=extras.some(e=>e.t===t);
+ mias=ya?mias.filter(x=>x!==t):[...mias,t];guardarMias();
+ if(!ya&&!baseT.has(t)&&!ext){extras.push({t,n:n||t});guardarExtras();cargar()}
+ else if(ya&&ext){extras=extras.filter(e=>e.t!==t);guardarExtras();cargar()}
+ else pintar();
+ btnMia(t)}
+function btnMia(t){$("bmia").textContent=esMia(t)?"★ Agregada":"☆ Agregar"}
 const fmt=(n,d=2)=>n.toLocaleString("es-CL",{minimumFractionDigits:d,maximumFractionDigits:d});
 const sgn=v=>(v>=0?"+":"")+fmt(v)+"%";
 const NY=new Intl.DateTimeFormat("en-US",{timeZone:"America/New_York",weekday:"short",hour:"numeric",minute:"numeric",hour12:false});
@@ -179,7 +184,7 @@ async function cargar(){
  ultimo={ahora:b.ahora,items:it};pintar()}
 const tarjeta=(i,k)=>{const up=i.var>=0,c=up?"up":"dn",
  f=previos[i.t]!==undefined&&previos[i.t]!==i.p?(i.p>previos[i.t]?" flash-up":" flash-dn"):"";previos[i.t]=i.p;
- return`<div class="c ${c}${esMia(i.t)?" mia":""}${f}" data-t="${esc(i.t)}"><button class="est${esMia(i.t)?" on":""}" aria-pressed="${esMia(i.t)}" aria-label="${esMia(i.t)?"Quitar de mis acciones":"Marcar como mía"}: ${esc(i.t)}">${esMia(i.t)?"★":"☆"}</button><div class="a"><div><div class="tk">${esc(i.t.replace("^",""))}</div><div class="nm">${esc(i.n)}</div></div>
+ return`<div class="c ${c}${esMia(i.t)?" mia":""}${f}" data-t="${esc(i.t)}"><button class="est${esMia(i.t)?" on":""}" aria-pressed="${esMia(i.t)}" aria-label="${esMia(i.t)?"Quitar de mis acciones":"Agregar"}: ${esc(i.t)}">${esMia(i.t)?"★":"☆"}</button><div class="a"><div><div class="tk">${esc(i.t.replace("^",""))}</div><div class="nm">${esc(i.n)}</div></div>
  <div class="vr"><em>${up?"▲":"▼"} ${fmt(Math.abs(i.var))}%</em></div></div><div class="pc">${fmt(i.p)}</div>${spark(i.spark,up,k)}</div>`};
 const grupo=(t,a,o)=>a.length?`<h2>${t}</h2><div class="g">${a.map((i,k)=>tarjeta(i,o+k)).join("")}</div>`:"";
 function pintar(){
@@ -206,14 +211,14 @@ let sel=null,series=null,rango="1D",modo="rango";
 const $=id=>document.getElementById(id);
 document.getElementById("lista").addEventListener("click",ev=>{const c=ev.target.closest(".c[data-t]");if(!c)return;
  if(ev.target.closest(".est")){ev.stopPropagation();marcar(c.dataset.t);return}abrir(c.dataset.t)});
-$("cerrar").onclick=cerrar;$("bmia").onclick=()=>sel&&marcar(sel.t);$("det").onclick=ev=>{if(ev.target.id==="det")cerrar()};
+$("cerrar").onclick=cerrar;$("bmia").onclick=()=>sel&&marcar(sel.t,sel.n);$("det").onclick=ev=>{if(ev.target.id==="det")cerrar()};
 addEventListener("keydown",ev=>{if(ev.key==="Escape")cerrar()});
 function cerrar(){$("det").classList.remove("on");sel=null;document.body.style.overflow=""}
 async function abrir(t,base){
  sel=(ultimo&&ultimo.items.find(i=>i.t===t&&!i.error))||base;if(!sel)return;series=null;rango="1D";modo="rango";$("pron").innerHTML="";$("bpron").classList.remove("on");
  $("dt").textContent=t.replace("^","");$("dn").textContent=sel.n;$("dp").textContent=sel.p==null?"":fmt(sel.p);noticias(t);
  $("rangos").innerHTML="";$("gs").innerHTML="";$("dv").textContent="cargando…";
- btnMia(t);btnExt();$("det").classList.add("on");document.body.style.overflow="hidden";
+ btnMia(t);$("det").classList.add("on");document.body.style.overflow="hidden";
  try{const s=await (await fetch(API+"/api/serie?t="+encodeURIComponent(t))).json();if(!sel||sel.t!==t)return;series=s}
  catch(e){$("dv").textContent="sin conexión con el servidor";return}
  rangosUI();dibujar()}
@@ -319,11 +324,8 @@ async function buscar(v){
  $("res").classList.add("on")}
 $("res").addEventListener("click",ev=>{const b=ev.target.closest("button[data-t]");if(b)agregar(b.dataset.t,b.dataset.n)});
 document.addEventListener("click",ev=>{if(!ev.target.closest("#busca"))$("res").classList.remove("on")});
-function agregar(t,n){if(!extras.some(e=>e.t===t)&&!baseT.has(t)){extras.push({t,n});guardarExtras();cargar()}
- $("res").classList.remove("on");$("q").value="";btnExt()}
-$("bext").onclick=()=>{if(!sel)return;if(extras.some(e=>e.t===sel.t))extras=extras.filter(e=>e.t!==sel.t);else extras.push({t:sel.t,n:sel.n});
- guardarExtras();cargar();btnExt()};
-
+function agregar(t,n){if(!esMia(t))marcar(t,n);
+ $("res").classList.remove("on");$("q").value=""}
 // ---- noticias ----
 const hace=ts=>{const s=Date.now()/1000-ts;return s<3600?"hace "+Math.max(1,Math.round(s/60))+" min":s<86400?"hace "+Math.round(s/3600)+" h":"hace "+Math.round(s/86400)+" d"};
 async function noticias(t){
